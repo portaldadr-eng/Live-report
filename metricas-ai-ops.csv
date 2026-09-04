@@ -1,5 +1,6 @@
 Data,Projeto,Status,Fase,Prioridade,Tickets_Abertos,Tickets_Resolvidos,SLA_Cumprido_Pct,Tempo_Medio_Resolucao_Hrs,Automacoes_Ativas,Erros_RPA,Economia_Horas,Conformidade_LGPD_Pct
 2026-07-01,IA Documentos,Em andamento,Desenvolvimento,Alta,12,8,87.5,4.2,3,2,45,52
+2026-07-01,RPA Fiscal,Concluido,Desenvolvimento,Alta,12,8,87.5,4.2,3,2,45,52
 2026-07-01,Chatbot Atendimento,Em andamento,Desenvolvimento,Alta,12,8,87.5,4.2,3,2,45,92
 2026-07-01,RPA Fiscal,Concluido,Producao,Media,3,3,100,1.8,7,0,120,100
 2026-07-01,IA Documentos,Em andamento,Teste,Alta,8,5,78.0,6.1,2,4,30,88
