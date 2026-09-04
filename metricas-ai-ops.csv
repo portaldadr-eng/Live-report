@@ -1,0 +1,41 @@
+Data,Projeto,Status,Fase,Prioridade,Tickets_Abertos,Tickets_Resolvidos,SLA_Cumprido_Pct,Tempo_Medio_Resolucao_Hrs,Automacoes_Ativas,Erros_RPA,Economia_Horas,Conformidade_LGPD_Pct
+2026-07-01,Chatbot Atendimento,Em andamento,Desenvolvimento,Alta,12,8,87.5,4.2,3,2,45,92
+2026-07-01,RPA Fiscal,Concluido,Producao,Media,3,3,100,1.8,7,0,120,100
+2026-07-01,IA Documentos,Em andamento,Teste,Alta,8,5,78.0,6.1,2,4,30,88
+2026-07-01,Firewall Inteligente,Planejado,Discovery,Critica,15,2,45.0,12.5,0,0,0,75
+2026-07-01,Dashboard Preditivo,Em andamento,Desenvolvimento,Media,6,4,90.0,3.0,1,1,15,95
+2026-07-08,Chatbot Atendimento,Em andamento,Desenvolvimento,Alta,10,9,91.0,3.8,4,1,52,93
+2026-07-08,RPA Fiscal,Concluido,Producao,Media,2,2,100,1.5,7,0,125,100
+2026-07-08,IA Documentos,Em andamento,Teste,Alta,9,7,82.0,5.4,2,3,38,90
+2026-07-08,Firewall Inteligente,Em andamento,Desenvolvimento,Critica,14,6,55.0,10.2,1,2,8,78
+2026-07-08,Dashboard Preditivo,Em andamento,Desenvolvimento,Media,5,5,95.0,2.8,1,0,18,96
+2026-07-15,Chatbot Atendimento,Em andamento,Teste,Alta,8,8,94.0,3.2,5,1,61,94
+2026-07-15,RPA Fiscal,Concluido,Producao,Media,4,4,100,1.6,8,0,132,100
+2026-07-15,IA Documentos,Em andamento,Homologacao,Alta,6,6,88.0,4.8,3,2,47,91
+2026-07-15,Firewall Inteligente,Em andamento,Desenvolvimento,Critica,12,8,62.0,8.7,2,3,14,80
+2026-07-15,Dashboard Preditivo,Em andamento,Teste,Media,4,3,92.0,2.5,2,1,22,97
+2026-07-22,Chatbot Atendimento,Em andamento,Homologacao,Alta,7,7,96.0,2.9,5,0,70,95
+2026-07-22,RPA Fiscal,Concluido,Producao,Baixa,2,2,100,1.4,8,0,138,100
+2026-07-22,IA Documentos,Em andamento,Homologacao,Alta,5,5,92.0,4.1,4,1,55,93
+2026-07-22,Firewall Inteligente,Em andamento,Teste,Critica,10,9,70.0,7.3,3,2,20,83
+2026-07-22,Dashboard Preditivo,Concluido,Producao,Media,3,3,100,2.1,3,0,28,98
+2026-07-29,Chatbot Atendimento,Concluido,Producao,Media,5,5,98.0,2.4,6,0,82,97
+2026-07-29,RPA Fiscal,Concluido,Producao,Baixa,1,1,100,1.2,9,0,145,100
+2026-07-29,IA Documentos,Em andamento,Producao,Alta,4,4,95.0,3.5,5,1,63,94
+2026-07-29,Firewall Inteligente,Em andamento,Teste,Critica,8,7,75.0,6.8,3,1,25,85
+2026-07-29,Dashboard Preditivo,Concluido,Producao,Baixa,2,2,100,1.9,3,0,32,99
+2026-08-05,Chatbot Atendimento,Concluido,Producao,Baixa,4,4,98.0,2.1,6,0,90,98
+2026-08-05,RPA Fiscal,Concluido,Producao,Baixa,1,1,100,1.0,10,0,152,100
+2026-08-05,IA Documentos,Concluido,Producao,Media,3,3,97.0,3.0,5,0,71,96
+2026-08-05,Firewall Inteligente,Em andamento,Homologacao,Alta,7,6,80.0,5.5,4,1,30,88
+2026-08-05,Dashboard Preditivo,Concluido,Producao,Baixa,1,1,100,1.5,4,0,35,99
+2026-08-12,Chatbot Atendimento,Concluido,Producao,Baixa,3,3,100,1.8,7,0,98,98
+2026-08-12,RPA Fiscal,Concluido,Producao,Baixa,2,2,100,1.1,10,0,160,100
+2026-08-12,IA Documentos,Concluido,Producao,Media,2,2,98.0,2.5,6,0,78,97
+2026-08-12,Firewall Inteligente,Em andamento,Producao,Alta,6,5,85.0,4.8,5,1,36,90
+2026-08-12,Dashboard Preditivo,Concluido,Producao,Baixa,1,1,100,1.2,4,0,38,100
+2026-08-19,Chatbot Atendimento,Concluido,Producao,Baixa,2,2,100,1.5,7,0,105,99
+2026-08-19,RPA Fiscal,Concluido,Producao,Baixa,1,1,100,0.9,11,0,168,100
+2026-08-19,IA Documentos,Concluido,Producao,Baixa,2,2,100,2.2,6,0,85,98
+2026-08-19,Firewall Inteligente,Concluido,Producao,Media,4,4,90.0,4.0,5,0,42,92
+2026-08-19,Dashboard Preditivo,Concluido,Producao,Baixa,1,1,100,1.0,4,0,40,100
