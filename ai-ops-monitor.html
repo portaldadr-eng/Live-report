@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Ops Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0f1520;
+    --surface-alt: #151d2e;
+    --border: #1e293b;
+    --text: #e2e8f0;
+    --text-sec: #8899b0;
+    --text-muted: #4a5a72;
+    --accent: #06d6a0;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+    --rose: #ef4444;
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter','Segoe UI',system-ui,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px 16px; }
+  .container { max-width: 1280px; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 10px; background: rgba(6,214,160,0.15); color: var(--accent); border-radius: 4px; padding: 3px 8px; font-weight: 700; letter-spacing: 0.06em; border: 1px solid rgba(6,214,160,0.2); }
+  .header-sub { color: var(--text-sec); font-size: 12px; margin-top: 4px; }
+  .sync-info { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono','Fira Code',monospace; text-align: right; }
+  .status-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-sec); flex-wrap: wrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-ok { background: var(--accent); box-shadow: 0 0 8px rgba(6,214,160,0.4); }
+  .error-box { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #fca5a5; }
+  .kpi-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .kpi-card { flex: 1 1 170px; min-width: 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-top: 2px solid var(--accent); }
+  .kpi-label { font-size: 11px; color: var(--text-sec); margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono',monospace; letter-spacing: -0.03em; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .trend-up { color: var(--accent); font-weight: 600; font-family: monospace; }
+  .trend-down { color: var(--rose); font-weight: 600; font-family: monospace; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .charts-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .charts-grid, .charts-grid-3 { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .chart-title { font-size: 12px; color: var(--text-sec); font-weight: 600; margin-bottom: 4px; }
+  .chart-subtitle { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap-sm { position: relative; height: 200px; }
+  .monitor-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .monitor-card { flex: 1 1 120px; min-width: 110px; border-radius: 8px; padding: 12px 14px; }
+  .monitor-label { font-size: 11px; color: var(--text-sec); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .monitor-value { font-size: 20px; font-weight: 700; font-family: monospace; }
+  .monitor-pct { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .monitor-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .monitor-bar-fill { height: 100%; border-radius: 2px; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .table-header { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .table-title { font-size: 12px; font-weight: 600; color: var(--text-sec); }
+  .filter-input { padding: 6px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; outline: none; width: 200px; }
+  .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 9px 12px; text-align: left; background: var(--surface-alt); color: var(--text-sec); font-weight: 600; font-size: 10px; cursor: pointer; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; top: 0; user-select: none; z-index: 1; }
+  th:hover { color: var(--accent); }
+  td { padding: 7px 12px; border-bottom: 1px solid rgba(30,41,59,0.3); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  tr:nth-child(even) { background: rgba(21,29,46,0.3); }
+  tr:hover { background: rgba(21,29,46,0.6); }
+  .num-cell { color: #93c5fd; font-family: 'JetBrains Mono',monospace; }
+  .table-footer { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); }
+  .page-btn { padding: 4px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 5px; color: var(--text); cursor: pointer; font-size: 11px; }
+  .page-btn:disabled { color: var(--text-muted); cursor: default; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 12px; margin-top: 8px; padding-left: 2px; letter-spacing: 0.02em; }
+  .col-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; font-size: 11px; align-items: center; }
+  .col-badge { padding: 2px 8px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>AI Ops Monitor <span class="badge" id="badge" style="display:none">LIVE</span></h1>
+      <div class="header-sub">Dashboard de métricas operacionais — dados ao vivo do GitHub</div>
+    </div>
+    <div class="sync-info" id="syncInfo"></div>
+  </div>
+  <div class="status-bar" id="statusBar"><span>⏳ Conectando...</span></div>
+  <div id="errorBox"></div>
+  <div id="kpiSection"></div>
+  <div id="chartSectionTitle" class="section-title" style="display:none">📊 Visão geral</div>
+  <div class="charts-grid" id="chartsRow1"></div>
+  <div id="insightSectionTitle" class="section-title" style="display:none">🔍 Insights operacionais</div>
+  <div class="charts-grid" id="chartsRow2"></div>
+  <div class="charts-grid-3" id="chartsRow3"></div>
+  <div id="monitorSection"></div>
+  <div id="colBadges" class="col-badges"></div>
+  <div id="tableSection"></div>
+</div>
+
+<script>
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  ⚙️  CONFIGURAÇÃO — MUDE AQUI                               ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+const CSV_URL = "https://raw.githubusercontent.com/portaldadr-eng/Live-report/main/metricas-ai-ops.csv";
+const REFRESH_SECONDS = 30;
+
+/* ══════════════════════════════════════════════════════════════ */
+
+const COLORS = ['#06d6a0','#3b82f6','#f59e0b','#a78bfa','#22d3ee','#ef4444','#f472b6','#34d399'];
+let allData = [], headers = [];
+let sortCol = -1, sortDir = 'asc', filterText = '', currentPage = 0;
+const PER_PAGE = 30;
+const charts = {};
+
+function toNum(v) { if (typeof v === 'number') return v; const n = Number(v); return isNaN(n) ? null : n; }
+function fmt(n) {
+  if (n == null) return '—';
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1)+'K';
+  if (Number.isInteger(n)) return n.toLocaleString('pt-BR');
+  return n.toLocaleString('pt-BR', {maximumFractionDigits:2});
+}
+function destroyAll() { Object.keys(charts).forEach(k => { if(charts[k]) { charts[k].destroy(); delete charts[k]; } }); }
+function getNumCol(col) { return allData.map(r => toNum(r[col])).filter(v => v != null); }
+
+function groupBy(groupCol, valueCol, aggFn) {
+  const groups = {};
+  allData.forEach(r => {
+    const key = String(r[groupCol] ?? 'N/A');
+    if (!groups[key]) groups[key] = [];
+    const v = toNum(r[valueCol]);
+    if (v != null) groups[key].push(v);
+  });
+  const result = {};
+  for (const [k, vals] of Object.entries(groups)) {
+    result[k] = aggFn === 'sum' ? vals.reduce((a,b)=>a+b,0)
+              : aggFn === 'avg' ? vals.reduce((a,b)=>a+b,0)/vals.length
+              : vals.length;
+  }
+  return result;
+}
+
+function getUniqueDates() {
+  const seen = new Set();
+  return allData.map(r => r['Data']).filter(d => { if (!d || seen.has(d)) return false; seen.add(d); return true; });
+}
+
+function aggByDate(valueCol, aggFn) {
+  const dates = getUniqueDates();
+  return dates.map(date => {
+    const rows = allData.filter(r => r['Data'] === date);
+    const vals = rows.map(r => toNum(r[valueCol])).filter(v => v != null);
+    if (!vals.length) return null;
+    return aggFn === 'sum' ? vals.reduce((a,b)=>a+b,0)
+         : aggFn === 'avg' ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2)
+         : vals.length;
+  });
+}
+
+const baseScales = {
+  x: { ticks: { color: '#4a5a72', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e293b' } },
+  y: { ticks: { color: '#4a5a72', font: { size: 10 }, callback: v => fmt(v) }, grid: { color: '#1e293b' }, beginAtZero: true }
+};
+const baseLegend = { labels: { color: '#8899b0', font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' } };
+const baseTooltip = { backgroundColor: '#151d2e', borderColor: '#1e293b', borderWidth: 1, titleColor: '#8899b0', bodyColor: '#e2e8f0', bodyFont: { family: "'JetBrains Mono', monospace" }, padding: 10, cornerRadius: 8 };
+
+// ── fetch ──
+async function fetchCSV() {
+  try {
+    const res = await fetch(CSV_URL + (CSV_URL.includes('?')? '&':'?') + 't=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + res.statusText);
+    const text = await res.text();
+    const result = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, dynamicTyping: true });
+    if (!result.data.length) throw new Error('CSV vazio ou inválido');
+    headers = result.meta.fields || [];
+    allData = result.data;
+    document.getElementById('errorBox').innerHTML = '';
+    render();
+  } catch(e) {
+    document.getElementById('errorBox').innerHTML =
+      '<div class="error-box"><strong>Erro:</strong> ' + e.message + '<br><span style="font-size:11px;color:var(--text-muted)">Verifique: repo público + URL raw (raw.githubusercontent.com)</span></div>';
+  }
+}
+
+function render() {
+  const now = new Date();
+  document.getElementById('badge').style.display = 'inline';
+  document.getElementById('syncInfo').textContent = 'sync ' + now.toLocaleTimeString('pt-BR');
+  document.getElementById('statusBar').innerHTML =
+    '<span><span class="dot dot-ok"></span>&nbsp; ' + allData.length + ' registros · ' + headers.length + ' colunas</span>' +
+    '<span style="color:var(--text-muted)">refresh a cada ' + REFRESH_SECONDS + 's</span>';
+  document.getElementById('chartSectionTitle').style.display = 'block';
+  document.getElementById('insightSectionTitle').style.display = 'block';
+
+  destroyAll();
+  renderKPIs();
+  renderChartsRow1();
+  renderChartsRow2();
+  renderChartsRow3();
+  renderMonitor();
+  renderColBadges();
+  renderTable();
+}
+
+// ── KPIs ──
+function renderKPIs() {
+  const el = document.getElementById('kpiSection');
+  const metrics = [
+    { label: 'Registros', value: allData.length, sub: headers.length + ' colunas', color: COLORS[6] },
+    { label: 'SLA Médio', col: 'SLA_Cumprido_Pct', suffix: '%', agg: 'avg', color: COLORS[1] },
+    { label: 'Economia Total', col: 'Economia_Horas', suffix: 'h', agg: 'sum', color: COLORS[0] },
+    { label: 'Erros RPA', col: 'Erros_RPA', agg: 'sum', color: COLORS[5] },
+    { label: 'Automações Ativas', col: 'Automacoes_Ativas', agg: 'latest', color: COLORS[4] },
+    { label: 'LGPD Médio', col: 'Conformidade_LGPD_Pct', suffix: '%', agg: 'avg', color: COLORS[3] },
+  ];
+
+  let html = '<div class="kpi-grid">';
+  metrics.forEach(k => {
+    let value, sub = k.sub || '';
+    if (!k.col) { value = k.value; }
+    else {
+      const vals = getNumCol(k.col);
+      if (!vals.length) { value = 0; }
+      else if (k.agg === 'sum') { value = vals.reduce((a,b)=>a+b,0); sub = 'total acumulado'; }
+      else if (k.agg === 'avg') { value = vals.reduce((a,b)=>a+b,0)/vals.length; sub = 'min ' + fmt(Math.min(...vals)) + ' · max ' + fmt(Math.max(...vals)); }
+      else { value = vals[vals.length - 1]; sub = 'último registro'; }
+    }
+    html += '<div class="kpi-card" style="border-top-color:' + k.color + '">' +
+      '<div class="kpi-label">' + k.label + '</div>' +
+      '<div class="kpi-value">' + fmt(value) + (k.suffix || '') + '</div>' +
+      '<div class="kpi-sub"><span>' + sub + '</span></div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Row 1: Tickets temporal + SLA/LGPD ──
+function renderChartsRow1() {
+  const el = document.getElementById('chartsRow1');
+  const dates = getUniqueDates();
+  if (!dates.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML =
+    '<div class="chart-card"><div class="chart-title">Tickets: Abertos vs Resolvidos</div><div class="chart-subtitle">Soma por semana</div><div class="chart-wrap"><canvas id="c1"></canvas></div></div>' +
+    '<div class="chart-card"><div class="chart-title">SLA e Conformidade LGPD</div><div class="chart-subtitle">Média semanal (%)</div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>';
+
+  charts.c1 = new Chart(document.getElementById('c1'), {
+    type: 'bar',
+    data: { labels: dates, datasets: [
+      { label: 'Abertos', data: aggByDate('Tickets_Abertos','sum'), backgroundColor: COLORS[5]+'88', borderColor: COLORS[5], borderWidth: 1, borderRadius: 4 },
+      { label: 'Resolvidos', data: aggByDate('Tickets_Resolvidos','sum'), backgroundColor: COLORS[0]+'88', borderColor: COLORS[0], borderWidth: 1, borderRadius: 4 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: baseLegend, tooltip: baseTooltip }, scales: baseScales }
+  });
+
+  charts.c2 = new Chart(document.getElementById('c2'), {
+    type: 'line',
+    data: { labels: dates, datasets: [
+      { label: 'SLA (%)', data: aggByDate('SLA_Cumprido_Pct','avg'), borderColor: COLORS[1], backgroundColor: COLORS[1]+'18', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: COLORS[1], borderWidth: 2 },
+      { label: 'LGPD (%)', data: aggByDate('Conformidade_LGPD_Pct','avg'), borderColor: COLORS[3], backgroundColor: COLORS[3]+'18', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: COLORS[3], borderWidth: 2 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: baseLegend, tooltip: baseTooltip },
+      scales: { x: baseScales.x, y: { ...baseScales.y, min: 50, max: 105 } } }
+  });
+}
+
+// ── Row 2: Economia por projeto + Erros RPA vs Tempo ──
+function renderChartsRow2() {
+  const el = document.getElementById('chartsRow2');
+  const dates = getUniqueDates();
+
+  el.innerHTML =
+    '<div class="chart-card"><div class="chart-title">Economia de Horas por Projeto</div><div class="chart-subtitle">Total acumulado</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '<div class="chart-card"><div class="chart-title">Erros RPA vs Tempo de Resolução</div><div class="chart-subtitle">Soma de erros (barras) · Média de horas (linha)</div><div class="chart-wrap"><canvas id="c4"></canvas></div></div>';
+
+  const econ = groupBy('Projeto', 'Economia_Horas', 'sum');
+  const econSorted = Object.entries(econ).sort((a,b) => b[1]-a[1]);
+
+  charts.c3 = new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: { labels: econSorted.map(e => e[0]), datasets: [{
+      label: 'Horas',
+      data: econSorted.map(e => Math.round(e[1])),
+      backgroundColor: econSorted.map((_,i) => COLORS[i % COLORS.length] + '88'),
+      borderColor: econSorted.map((_,i) => COLORS[i % COLORS.length]),
+      borderWidth: 1, borderRadius: 4, maxBarThickness: 40
+    }]},
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: baseTooltip },
+      scales: { x: { ...baseScales.y }, y: { ...baseScales.x, ticks: { ...baseScales.x.ticks, font: { size: 11 } } } } }
+  });
+
+  if (dates.length) {
+    charts.c4 = new Chart(document.getElementById('c4'), {
+      data: { labels: dates, datasets: [
+        { type: 'bar', label: 'Erros RPA', data: aggByDate('Erros_RPA','sum'), backgroundColor: COLORS[5]+'66', borderColor: COLORS[5], borderWidth: 1, borderRadius: 4, yAxisID: 'y', order: 2 },
+        { type: 'line', label: 'Tempo Resolução (h)', data: aggByDate('Tempo_Medio_Resolucao_Hrs','avg'), borderColor: COLORS[2], backgroundColor: COLORS[2]+'18', tension: 0.3, pointRadius: 4, pointBackgroundColor: COLORS[2], borderWidth: 2, yAxisID: 'y1', order: 1 }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: baseLegend, tooltip: baseTooltip },
+        scales: {
+          x: baseScales.x,
+          y: { position: 'left', ticks: { color: '#4a5a72', font: { size: 10 } }, grid: { color: '#1e293b' }, beginAtZero: true, title: { display: true, text: 'Erros', color: '#4a5a72', font: { size: 10 } } },
+          y1: { position: 'right', ticks: { color: '#4a5a72', font: { size: 10 }, callback: v => v.toFixed(1)+'h' }, grid: { display: false }, beginAtZero: true, title: { display: true, text: 'Horas', color: '#4a5a72', font: { size: 10 } } }
+        }}
+    });
+  }
+}
+
+// ── Row 3: Doughnut Status + Prioridade + Automações ──
+function renderChartsRow3() {
+  const el = document.getElementById('chartsRow3');
+
+  el.innerHTML =
+    '<div class="chart-card"><div class="chart-title">Distribuição por Status</div><div class="chart-wrap-sm"><canvas id="c5"></canvas></div></div>' +
+    '<div class="chart-card"><div class="chart-title">Tickets por Prioridade</div><div class="chart-wrap-sm"><canvas id="c6"></canvas></div></div>' +
+    '<div class="chart-card"><div class="chart-title">Automações Ativas por Projeto</div><div class="chart-wrap-sm"><canvas id="c7"></canvas></div></div>';
+
+  // Status doughnut
+  const sc = groupBy('Status', 'Status', 'count');
+  charts.c5 = new Chart(document.getElementById('c5'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(sc), datasets: [{ data: Object.values(sc), backgroundColor: Object.keys(sc).map((_,i) => COLORS[i % COLORS.length]+'cc'), borderColor: 'transparent' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#8899b0', font: { size: 11 }, usePointStyle: true, padding: 12 } }, tooltip: baseTooltip } }
+  });
+
+  // Prioridade
+  const pc = groupBy('Prioridade', 'Tickets_Abertos', 'sum');
+  const order = ['Critica','Alta','Media','Baixa'].filter(p => pc[p] != null);
+  const pColors = { Critica: COLORS[5], Alta: COLORS[2], Media: COLORS[1], Baixa: COLORS[0] };
+  charts.c6 = new Chart(document.getElementById('c6'), {
+    type: 'bar',
+    data: { labels: order, datasets: [{ label: 'Tickets', data: order.map(p => Math.round(pc[p]||0)),
+      backgroundColor: order.map(p => (pColors[p]||COLORS[0])+'88'), borderColor: order.map(p => pColors[p]||COLORS[0]),
+      borderWidth: 1, borderRadius: 4, maxBarThickness: 50 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip }, scales: baseScales }
+  });
+
+  // Automações por projeto (último registro)
+  const projetos = [...new Set(allData.map(r => r['Projeto']))];
+  const ad = projetos.map(p => {
+    const rows = allData.filter(r => r['Projeto'] === p);
+    return { p, v: toNum(rows[rows.length-1]?.['Automacoes_Ativas']) || 0 };
+  }).sort((a,b) => b.v - a.v);
+
+  charts.c7 = new Chart(document.getElementById('c7'), {
+    type: 'bar',
+    data: { labels: ad.map(d => d.p), datasets: [{ label: 'Ativas', data: ad.map(d => d.v),
+      backgroundColor: ad.map((_,i) => COLORS[i % COLORS.length]+'88'), borderColor: ad.map((_,i) => COLORS[i % COLORS.length]),
+      borderWidth: 1, borderRadius: 4, maxBarThickness: 40 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip }, scales: baseScales }
+  });
+}
+
+// ── monitor ──
+function renderMonitor() {
+  const el = document.getElementById('monitorSection');
+  const projetos = [...new Set(allData.map(r => r['Projeto']))];
+
+  let html = '<div class="section-title">🖥 Painel de monitoramento por projeto</div><div class="chart-card" style="margin-bottom:20px"><div class="monitor-grid">';
+  projetos.forEach(p => {
+    const rows = allData.filter(r => r['Projeto'] === p);
+    const last = rows[rows.length - 1];
+    if (!last) return;
+    const sla = toNum(last['SLA_Cumprido_Pct']) || 0;
+    const color = sla >= 90 ? COLORS[0] : sla >= 70 ? COLORS[2] : COLORS[5];
+    html += '<div class="monitor-card" style="background:' + color + '0d;border:1px solid ' + color + '22">' +
+      '<div class="monitor-label"><span class="dot" style="background:' + color + ';box-shadow:0 0 6px ' + color + '66"></span> ' + p + '</div>' +
+      '<div class="monitor-value">' + sla + '%</div>' +
+      '<div class="monitor-pct">SLA · ' + (last['Status']||'') + ' · ' + (last['Fase']||'') + '</div>' +
+      '<div class="monitor-bar"><div class="monitor-bar-fill" style="width:' + sla + '%;background:' + color + '"></div></div></div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+// ── col badges ──
+function renderColBadges() {
+  const numCols = headers.filter(h => { const v = allData.slice(0,20).map(r=>r[h]).filter(v=>v!=null); return v.length && v.filter(x=>typeof x==='number').length/v.length>0.7; });
+  const dateCols = headers.filter(h => { const v = allData.slice(0,20).map(r=>r[h]).filter(v=>v!=null); return v.length && v.filter(x=>/^\d{4}[-/]\d/.test(String(x))).length/v.length>0.7; });
+  const catCols = headers.filter(h => !numCols.includes(h) && !dateCols.includes(h));
+  document.getElementById('colBadges').innerHTML =
+    '<span style="color:var(--text-muted)">Auto-detectado:</span>' +
+    (dateCols.length ? '<span class="col-badge" style="background:rgba(6,214,160,0.13);color:var(--accent)">📅 ' + dateCols.length + ' data</span>' : '') +
+    '<span class="col-badge" style="background:rgba(59,130,246,0.13);color:var(--blue)">📊 ' + numCols.length + ' numérica' + (numCols.length!==1?'s':'') + '</span>' +
+    '<span class="col-badge" style="background:rgba(167,139,250,0.13);color:var(--purple)">🏷 ' + catCols.length + ' categórica' + (catCols.length!==1?'s':'') + '</span>';
+}
+
+// ── table ──
+function renderTable() {
+  const el = document.getElementById('tableSection');
+  let filtered = filterText ? allData.filter(r => Object.values(r).some(v => v!=null && String(v).toLowerCase().includes(filterText.toLowerCase()))) : [...allData];
+  if (sortCol >= 0) {
+    const key = headers[sortCol];
+    filtered.sort((a,b) => {
+      let va=a[key], vb=b[key]; if(va==null) return 1; if(vb==null) return -1;
+      if(typeof va==='number'&&typeof vb==='number') return sortDir==='asc'?va-vb:vb-va;
+      return sortDir==='asc'?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
+    });
+  }
+  const tp = Math.max(1,Math.ceil(filtered.length/PER_PAGE));
+  if(currentPage>=tp) currentPage=tp-1;
+  const pd = filtered.slice(currentPage*PER_PAGE,(currentPage+1)*PER_PAGE);
+
+  let html = '<div class="section-title">📋 Dados brutos</div><div class="table-wrap">' +
+    '<div class="table-header"><span class="table-title">' + filtered.length + ' registros</span>' +
+    '<input class="filter-input" placeholder="Filtrar…" value="' + filterText + '" oninput="filterText=this.value;currentPage=0;renderTable()"></div>' +
+    '<div class="table-scroll"><table><thead><tr>';
+  headers.forEach((h,i) => {
+    const arrow = sortCol===i ? (sortDir==='asc'?' ↑':' ↓') : '';
+    html += '<th onclick="handleSort('+i+')">'+h+'<span style="color:var(--accent)">'+arrow+'</span></th>';
+  });
+  html += '</tr></thead><tbody>';
+  if(!pd.length) html += '<tr><td colspan="'+headers.length+'" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum resultado</td></tr>';
+  else pd.forEach(row => {
+    html += '<tr>';
+    headers.forEach(h => { const v=row[h]; html += '<td class="'+(typeof v==='number'?'num-cell':'')+'">'+(v!=null?v:'—')+'</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>' +
+    '<div class="table-footer"><span>'+Math.min(currentPage*PER_PAGE+1,filtered.length)+'–'+Math.min((currentPage+1)*PER_PAGE,filtered.length)+' de '+filtered.length+'</span>' +
+    '<div style="display:flex;gap:4px"><button class="page-btn" onclick="currentPage=Math.max(0,currentPage-1);renderTable()" '+(currentPage===0?'disabled':'')+'>←</button>' +
+    '<button class="page-btn" onclick="currentPage=Math.min('+(tp-1)+',currentPage+1);renderTable()" '+(currentPage>=tp-1?'disabled':'')+'>→</button></div></div></div>';
+  el.innerHTML = html;
+}
+
+function handleSort(i) { if(sortCol===i) sortDir=sortDir==='asc'?'desc':'asc'; else { sortCol=i; sortDir='asc'; } renderTable(); }
+
+// ── init ──
+fetchCSV();
+setInterval(fetchCSV, REFRESH_SECONDS * 1000);
+</script>
+</body>
+</html>
